@@ -9,7 +9,10 @@ mod core;
 mod enhance;
 mod feat;
 mod utils;
+
+#[cfg(not(target_os = "macos"))]
 mod deep_link;
+
 use std::sync::{Arc, Mutex};
 
 use crate::utils::{init, resolve, server, help};
