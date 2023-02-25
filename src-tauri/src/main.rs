@@ -12,6 +12,7 @@ mod utils;
 
 #[cfg(not(target_os = "macos"))]
 mod deep_link;
+mod network_measurement;
 
 use std::sync::{Arc, Mutex};
 
