@@ -2,6 +2,12 @@ use super::{distance::EarthLocation, error::SpeedTestError};
 use std::{net::Ipv4Addr, time::Duration};
 use reqwest::Proxy as ReqwestProxy;
 
+pub enum MeasurementMode{
+    Full,
+    Download,
+    Upload,
+}
+
 #[derive(Clone)]
 pub struct SpeedTestClientConfig {
     pub ip: Ipv4Addr,

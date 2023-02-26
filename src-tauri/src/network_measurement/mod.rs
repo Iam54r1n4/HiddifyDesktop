@@ -7,10 +7,10 @@ mod speedtest_config;
 mod speedtest_servers_config;
 
 pub use speedtest_config::Proxy;
-
+pub use speedtest_config::MeasurementMode;
 
 // Measures download and upload speed
-fn measure(proxy: Option<&reqwest::Proxy>) -> Result<speedtest::SpeedTestResultOwned,error::SpeedTestError>{
+fn measure(measurement_mode: MeasurementMode,proxy: Option<&reqwest::Proxy>) -> Result<speedtest::SpeedTestResultOwned,error::SpeedTestError>{
     // Build proxy if exist
     let proxy= {
         match proxy{
@@ -43,11 +43,26 @@ fn measure(proxy: Option<&reqwest::Proxy>) -> Result<speedtest::SpeedTestResultO
     // Best test server
     let best_server = best_server_info.server.to_owned();
     
-    // Download measurement
-    let download_measurement = Some(speedtest::test_download_with_progress_and_config(&best_server, || {}, &mut config)?);
-    // Upload measurement
-    let upload_measurement = Some(speedtest::test_upload_with_progress_and_config(&best_server, || {}, &mut config)?);
+    let (download_measurement,upload_measurement) = {
+        match &measurement_mode{
+            &MeasurementMode::Full => {
+                let d_m = Some(speedtest::test_download_with_progress_and_config(&best_server, || {}, &mut config)?);
+                let u_m = Some(speedtest::test_upload_with_progress_and_config(&best_server, || {}, &mut config)?);
+                (d_m,u_m)
+            },
+            &MeasurementMode::Download => {
+                let d_m = Some(speedtest::test_download_with_progress_and_config(&best_server, || {}, &mut config)?);
+                (d_m,None)
+            }
+            &MeasurementMode::Upload => {
+                let u_m = Some(speedtest::test_upload_with_progress_and_config(&best_server, || {}, &mut config)?);
+                (None,u_m)
+            },
+            //_ => {(None,None)},
+            
+        }
 
+    };
 
     let result = speedtest::SpeedTestResultOwned { 
         download_measurement: download_measurement,
