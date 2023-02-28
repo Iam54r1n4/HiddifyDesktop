@@ -10,7 +10,7 @@ pub use speedtest_config::Proxy;
 pub use speedtest_config::MeasurementMode;
 
 // Measures download and upload speed
-fn measure(measurement_mode: MeasurementMode,proxy: Option<&reqwest::Proxy>) -> Result<speedtest::SpeedTestResultOwned,error::SpeedTestError>{
+pub fn measure(measurement_mode: MeasurementMode,proxy: Option<&reqwest::Proxy>) -> Result<speedtest::SpeedTestResultOwned,error::SpeedTestError>{
     // Build proxy if exist
     let proxy= {
         match proxy{
