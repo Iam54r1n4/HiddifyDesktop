@@ -1,5 +1,5 @@
-use crate::config::Config;
-use anyhow::{bail, Result};
+use crate::config::{Config, self};
+use anyhow::{bail, Result,Error};
 use reqwest::header::HeaderMap;
 use serde_yaml::Mapping;
 use std::collections::HashMap;
@@ -92,6 +92,78 @@ pub fn parse_check_output(log: String) -> String {
     log
 }
 
+/// PUT /proxies/:name
+pub async fn select_proxy(selector:&String,proxy_name:&String) -> Result<()>{
+    let (url, headers) = clash_client_info()?;
+    let url = format!("{url}/proxies/{selector}");
+
+    let mut json = HashMap::new();
+    json.insert("name", proxy_name);
+
+    let client = reqwest::ClientBuilder::new().no_proxy().build()?;
+    let builder = client.put(url).headers(headers.clone()).json(&json);
+    builder.send().await?;
+    Ok(())
+}
+
+pub async fn get_mode() -> Result<config::Mode>{
+    let (url,headers) = clash_client_info()?;
+    let url = format!("{url}/configs");
+
+    let client = reqwest::ClientBuilder::new().no_proxy().build()?;
+    let res = client.get(url).headers(headers).send().await?;
+    let body = res.bytes().await?;
+
+    let json = serde_json::from_slice::<serde_json::Value>(&body)?;
+    if let Some(mode) = json.get("mode"){
+        if let Some(mode) = mode.as_str(){
+            match mode{
+                "global" => Ok(config::Mode::Global),
+                "rule" => Ok(config::Mode::Rule),
+                "direct" => Ok(config::Mode::Direct),
+                _ => Err(Error::msg("Unknown clash mode"))
+            }
+        }else{
+            Err(Error::msg("Error occurred during get mode of clash"))
+        }
+    }else{
+        Err(Error::msg("Error occurred during get mode of clash"))
+    }
+}
+
+pub async fn get_selectors() -> Result<Vec<String>>{
+    let (url, headers) = clash_client_info()?;
+    let url = format!("{url}/proxies");
+
+    let client = reqwest::ClientBuilder::new().no_proxy().build()?;
+    let builder = client.get(url).headers(headers).send().await?;
+    let body = builder.bytes().await?;
+    let json = serde_json::from_slice::<serde_json::Value>(&body)?;
+    if let Some(json) = json.as_array(){
+        let mut selectors = vec![];
+        for item in json{
+            // Check type
+            if let Some(type_field) = item.get("type"){
+                if let Some(type_value) = type_field.as_str(){
+                    if type_value == "Selector"{
+                        // Get name
+                        if let Some(name_field) = item.get("name"){
+                            if let Some(name_value) = name_field.as_str(){
+                                selectors.push(name_value.to_string());
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+            return Err(Error::msg("Error occurred during get clash selectors"))
+        }
+        Ok(selectors)
+    }else{
+        return Err(Error::msg("Error occurred during get clash selectors"))
+    }
+
+}
 #[test]
 fn test_parse_check_output() {
     let str1 = r#"xxxx\n time="2022-11-18T20:42:58+08:00" level=error msg="proxy 0: 'alpn' expected type 'string', got unconvertible type '[]interface {}'""#;

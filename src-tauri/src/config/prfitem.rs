@@ -9,7 +9,7 @@ use tauri::regex::Regex;
 
 use super::Config;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize,PartialEq)]
 pub struct PrfItem {
     pub uid: Option<String>,
 
@@ -52,13 +52,13 @@ pub struct PrfItem {
     pub file_data: Option<String>,
 }
 
-#[derive(Default, Debug, Clone, Deserialize, Serialize)]
+#[derive(Default, Debug, Clone, Deserialize, Serialize,PartialEq)]
 pub struct PrfSelected {
     pub name: Option<String>,
     pub now: Option<String>,
 }
 
-#[derive(Default, Debug, Clone, Copy, Deserialize, Serialize)]
+#[derive(Default, Debug, Clone, Copy, Deserialize, Serialize,PartialEq)]
 pub struct PrfExtra {
     pub upload: usize,
     pub download: usize,

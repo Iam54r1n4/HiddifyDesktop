@@ -101,3 +101,8 @@ pub enum ConfigType {
     Run,
     Check,
 }
+pub enum Mode{
+    Global,
+    Rule,
+    Direct
+}
