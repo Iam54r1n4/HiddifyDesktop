@@ -5,7 +5,7 @@ use serde_yaml::{Mapping, Value};
 use std::{fs, path::PathBuf, process::Command, str::FromStr, thread};
 use tauri::{AppHandle};
 use std::time::Duration;
-use crate::{utils::resolve, cmds};
+use crate::{utils::{resolve,dirs}, cmds,config::{Proxy}};
 
 /// read data from yaml as struct T
 pub fn read_yaml<T: DeserializeOwned>(path: &PathBuf) -> Result<T> {
@@ -188,6 +188,38 @@ pub async fn select_last_profile() -> Result<(),()>{
             }
         },
         Err(_) => return Err(())
+    }
+}
+
+pub async fn get_current_profile_proxies() -> Result<Vec<Proxy>>{
+    let current_profile_name = {
+        if let Ok(config) = cmds::get_profiles(){
+            if let Some(mut current) = config.get_current(){
+                current.push_str(".yaml");
+                current
+            }else{
+                return Err(anyhow::Error::msg("Error occurred during get current profile file name"))
+            }
+            
+        }else{
+            return Err(anyhow::Error::msg("Error occurred during get profile config(IProfile)"))
+        }
+    };
+
+    let current_profile_file_path = dirs::app_profiles_dir()?.join(current_profile_name);
+
+    let current_profile_yaml = read_yaml::<Value>(&current_profile_file_path).unwrap();
+    let proxies = {
+        if let   Some(value) = current_profile_yaml.get("proxies"){
+            value
+        }else{
+            return Err(anyhow::Error::msg("Error occurred during get proxies field from profile file)"))
+        }
+    };
+    if let Ok(proxies) = serde_yaml::from_value::<Vec<Proxy>>(proxies.to_owned()){
+        Ok(proxies)
+    }else{
+        Err(anyhow::Error::msg("Error occurred during deserialize yaml to Proxy struct"))
     }
 }
 

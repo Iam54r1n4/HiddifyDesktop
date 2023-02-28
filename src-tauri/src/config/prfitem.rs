@@ -1,12 +1,11 @@
 use crate::utils::{dirs, help, tmpl};
 use anyhow::{bail, Context, Result};
-use reqwest::StatusCode;
+use reqwest::{StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_yaml::Mapping;
 use std::fs;
 use sysproxy::Sysproxy;
 use tauri::regex::Regex;
-
 
 use super::Config;
 
@@ -86,6 +85,137 @@ pub struct PrfOption {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub update_interval: Option<u64>,
+}
+#[derive(Deserialize, PartialEq, Debug)]
+pub struct Proxy{
+    pub name: Option<String>,
+    pub r#type: Option<String>,
+    pub server: Option<String>,
+    pub port: Option<i16>,
+    pub uuid: Option<String>,
+    pub servername: Option<String>,
+    pub plugin: Option<String>,
+    pub tls: Option<bool>,
+    pub password: Option<String>,
+    #[serde(alias = "client-fingerprint")]
+    pub client_fingerprint: Option<String>,
+    #[serde(alias = "alterId")]
+    pub alter_id: Option<i16>,
+    pub obfs: Option<String>,
+    pub cipher: Option<ProxyCipher>,
+    pub version: Option<i16>,
+    pub psk: Option<String>,
+    pub alpn: Option<ProxyAlpn>,
+    pub udp: Option<bool>,
+    pub protocol: Option<String>,
+    pub sni: Option<String>,
+    #[serde(alias = "skip-cert-verify")]
+    pub skip_cert_verify: Option<bool>,
+    pub network: Option<String>,
+    #[serde(alias = "ws-opts")]
+    pub ws_opts: Option<WsOpts>,
+    #[serde(alias = "grpc-opts")]
+    pub grpc_opts: Option<GrpcOpts>,
+    #[serde(alias = "plugin-opts")]
+    pub plugin_opts: Option<PluginOpts>,
+    #[serde(alias = "http-opts")]
+    pub http_opts: Option<HttpOpts>,
+    #[serde(alias = "obfs-opts")]
+    pub obfs_opts: Option<ObfsOpts>,
+    #[serde(alias = "h2-opts")]
+    pub h2_opts: Option<H2Opts>,
+}
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub enum ProxyAlpn{
+    #[serde(alias = "h2")]
+    H2,
+    #[serde(alias = "http/1.1")]
+    Http1_1
+}
+#[derive(Deserialize, PartialEq, Debug)]
+pub enum ProxyCipher{
+    #[serde(rename(deserialize = "aes-128-gcm"))]
+    Aes128Gcm,
+    #[serde(rename(deserialize = "aes-192-gcm"))]
+    Aes192Gcm,
+    #[serde(rename(deserialize = "aes-256-gcm"))]
+    Aes256Gcm,
+    #[serde(rename(deserialize = "aes-128-cfb"))]
+    Aes128Cfb,
+    #[serde(rename(deserialize = "aes-192-cfb"))]
+    Aes192Cfb,
+    #[serde(rename(deserialize = "aes-256-cfb"))]
+    Aes256Cfb,
+    #[serde(rename(deserialize = "aes-128-ctr"))]
+    Aes128Ctr,
+    #[serde(rename(deserialize = "aes-192-ctr"))]
+    Aes192Ctr,
+    #[serde(rename(deserialize = "aes-256-ctr"))]
+    Aes256Ctr,
+    #[serde(rename(deserialize = "rc4-md5"))]
+    Rc4Md5,
+    #[serde(rename(deserialize = "chacha20-ietf"))]
+    Chacha20Ietf,
+    #[serde(rename(deserialize = "xchacha20"))]
+    Lxchacha20,
+    #[serde(rename(deserialize = "chacha20-ietf-poly1305"))]
+    Chacha20IetfPoly1305,
+    #[serde(rename(deserialize = "xchacha20-ietf-poly1305"))]
+    Xchacha20IetfPoly1305,
+    #[serde(rename(deserialize = "auto"))]
+    Auto,
+}
+#[derive(Deserialize, PartialEq, Debug)]
+pub struct WsOpts{
+    path: Option<String>,
+    headers: Option<std::collections::HashMap<String,String>>,
+    #[serde(alias = "max-early-data")]
+    max_early_data: Option<i16>,
+    #[serde(alias = "early-data-header-name")]
+    early_data_header_name: Option<String>,
+}
+#[derive(Deserialize, PartialEq, Debug)]
+pub struct GrpcOpts{
+    #[serde(alias = "grpc-service-name")]
+    grpc_service_name: Option<String>,
+}
+#[derive(Deserialize, PartialEq, Debug)]
+pub struct PluginOpts{
+    mode: Option<String>,
+    host: Option<String>,
+    tls: Option<String>,
+    path: Option<String>,
+    mux: Option<bool>,
+    #[serde(alias = "skip-cert-verify")]
+    skip_cert_verify: Option<bool>,
+}
+#[derive(Deserialize, PartialEq, Debug)]
+pub struct ObfsOpts{
+    host: Option<String>,
+    mode: Option<String>,
+}
+#[derive(Deserialize, PartialEq, Debug)]
+pub struct HttpOpts{
+    path: Option<Vec<String>>,
+    method: Option<ProxyMethod>,
+}
+#[derive(Deserialize, PartialEq, Debug)]
+pub struct H2Opts{
+    host: Option<Vec<String>>,
+    path: Option<String>,
+}
+
+#[derive(Deserialize, PartialEq, Debug)]
+pub enum ProxyMethod{
+    OPTION,
+    GET,
+    POST,
+    PUT,
+    DELETE,
+    HEAD,
+    TRACE,
+    CONNECT,
+    PATCH,
 }
 
 impl PrfOption {

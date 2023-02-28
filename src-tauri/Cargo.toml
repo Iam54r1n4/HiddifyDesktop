@@ -1,11 +1,11 @@
 [package]
-name = "clash-verge"
+name = "HiddifyDesktop"
 version = "0.1.0"
 description = "clash verge"
 authors = ["zzzgydi"]
 license = "GPL-3.0"
 repository = "https://github.com/zzzgydi/clash-verge.git"
-default-run = "clash-verge"
+default-run = "HiddifyDesktop"
 edition = "2021"
 build = "build.rs"
 

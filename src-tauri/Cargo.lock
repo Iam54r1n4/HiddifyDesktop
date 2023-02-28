@@ -3,6 +3,56 @@
 version = 3
 
 [[package]]
+name = "HiddifyDesktop"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-std",
+ "auto-launch",
+ "chrono",
+ "ctrlc",
+ "deelevate",
+ "delay_timer",
+ "dirs 4.0.0",
+ "dirs-next",
+ "dunce",
+ "futures 0.3.25",
+ "interprocess",
+ "iter-read",
+ "log 0.4.17",
+ "log4rs",
+ "md5",
+ "nanoid",
+ "once_cell",
+ "open",
+ "parking_lot",
+ "patch",
+ "port_scanner",
+ "rayon",
+ "reqwest",
+ "roxmltree",
+ "rquickjs",
+ "runas",
+ "serde",
+ "serde_json",
+ "serde_yaml 0.9.14",
+ "sysinfo",
+ "sysproxy",
+ "tauri",
+ "tauri-build",
+ "tauri-runtime-wry",
+ "tauri-utils",
+ "tokio",
+ "url",
+ "warp",
+ "which 4.3.0",
+ "window-shadows",
+ "window-vibrancy",
+ "windows-sys 0.36.1",
+ "winreg",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -546,56 +596,6 @@ dependencies = [
  "time 0.1.45",
  "wasm-bindgen",
  "winapi",
-]
-
-[[package]]
-name = "clash-verge"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-std",
- "auto-launch",
- "chrono",
- "ctrlc",
- "deelevate",
- "delay_timer",
- "dirs 4.0.0",
- "dirs-next",
- "dunce",
- "futures 0.3.25",
- "interprocess",
- "iter-read",
- "log 0.4.17",
- "log4rs",
- "md5",
- "nanoid",
- "once_cell",
- "open",
- "parking_lot",
- "patch",
- "port_scanner",
- "rayon",
- "reqwest",
- "roxmltree",
- "rquickjs",
- "runas",
- "serde",
- "serde_json",
- "serde_yaml 0.9.14",
- "sysinfo",
- "sysproxy",
- "tauri",
- "tauri-build",
- "tauri-runtime-wry",
- "tauri-utils",
- "tokio",
- "url",
- "warp",
- "which 4.3.0",
- "window-shadows",
- "window-vibrancy",
- "windows-sys 0.36.1",
- "winreg",
 ]
 
 [[package]]
