@@ -5,7 +5,7 @@ pub struct EarthLocation {
     pub latitude: f32,
     pub longitude: f32,
 }
-
+#[allow(unused)]
 pub fn compute_distance(origin: &EarthLocation, destination: &EarthLocation) -> f32 {
     let radius: f32 = 6371.0;
     let d_lat = to_radians(origin.latitude - destination.latitude);

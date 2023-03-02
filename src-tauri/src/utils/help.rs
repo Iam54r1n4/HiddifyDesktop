@@ -5,7 +5,7 @@ use serde_yaml::{Mapping, Value};
 use std::{fs, path::PathBuf, process::Command, str::FromStr, thread};
 use tauri::{AppHandle};
 use std::time::Duration;
-use crate::{utils::{resolve,dirs}, cmds,config::{Proxy, PrfItem}, network_measurement::{MeasurementMode, self}};
+use crate::{utils::{resolve}, cmds,config::{Config, self}, network_measurement::{MeasurementMode,MeasureInfo, self,SpeedTestResult}, core::clash_api};
 
 /// read data from yaml as struct T
 pub fn read_yaml<T: DeserializeOwned>(path: &PathBuf) -> Result<T> {
@@ -190,85 +190,131 @@ pub async fn select_last_profile() -> Result<(),()>{
         Err(_) => return Err(())
     }
 }
-pub fn get_current_profile_uid() -> Result<String>{
-    let current_profile_name = {
-        if let Ok(config) = cmds::get_profiles(){
-            if let Some(mut current) = config.get_current(){
-                current
-            }else{
-                return Err(anyhow::Error::msg("Error occurred during get current profile file name"))
+
+
+
+// For now we don't need these functions
+// pub fn get_current_profile_uid() -> Result<String>{
+//     let current_profile_name = {
+//         if let Ok(config) = cmds::get_profiles(){
+//             if let Some(mut current) = config.get_current(){
+//                 current
+//             }else{
+//                 return Err(anyhow::Error::msg("Error occurred during get current profile file name"))
+//             }
+            
+//         }else{
+//             return Err(anyhow::Error::msg("Error occurred during get profile config(IProfile)"))
+//         }
+//     };
+//     Ok(current_profile_name)
+//}
+// pub fn get_current_profile_proxies() -> Result<Vec<Proxy>>{
+//     let mut current_profile_name = get_current_profile_uid()?;
+//     current_profile_name.push_str(".yaml");
+//     let current_profile_file_path = dirs::app_profiles_dir()?.join(current_profile_name);
+
+//     let current_profile_yaml = read_yaml::<Value>(&current_profile_file_path).unwrap();
+//     let proxies = {
+//         if let   Some(value) = current_profile_yaml.get("proxies"){
+//             value
+//         }else{
+//             return Err(anyhow::Error::msg("Error occurred during get proxies field from profile file)"))
+//         }
+//     };
+//     if let Ok(proxies) = serde_yaml::from_value::<Vec<Proxy>>(proxies.to_owned()){
+//         Ok(proxies)
+//     }else{
+//         Err(anyhow::Error::msg("Error occurred during deserialize yaml to Proxy struct"))
+//     }
+// }
+
+pub async fn measure_global_proxies(measure_mode: MeasurementMode) -> Result<Vec<SpeedTestResult>>{
+    if let MeasurementMode::Full = measure_mode{
+        return Err(anyhow::Error::msg("NO !, It's related to ui thing, download and upload test have different button"))
+    }
+    if !check_internet_connection(){
+        return Err(anyhow::Error::msg("We couldn't connect to the internet"))
+    }
+    // Change clash mode to GLOBAL
+    if let Ok(mode) = clash_api::get_mode().await{
+        if mode != config::Mode::Global{
+            clash_api::set_mode(&String::from("global")).await?;
+        }
+    }
+    // Get global proxies
+    let global_proxies = clash_api::get_selector_proxies("GLOBAL").await?;
+
+    
+    // Clash port
+    let clash_port = Config::clash().data().get_mixed_port();
+
+    // Proxies Measurement result
+    let mut proxy_measurement_results:Vec<SpeedTestResult> = vec![];
+    
+    for proxy in global_proxies{
+        if proxy.to_lowercase() == "reject"{
+            continue;
+        }
+        // Clash proxy address
+        let reqwest_proxy = reqwest::Proxy::all(format!("http://127.0.0.1:{}",clash_port))?;
+        // Select current proxy
+        if let Ok(_) =  clash_api::select_proxy("GLOBAL",&proxy).await{
+            // Measure speed with the proxy
+            
+            let measure_mode_clone = measure_mode.clone();
+            let measurement_handle = tokio::task::spawn_blocking(move || {
+                let measure_res =  network_measurement::measure(&measure_mode_clone, Some(&reqwest_proxy.clone()));
+                measure_res
+            });
+            let mut measurement_failed = false;
+            let mut error:Option<String> = None;
+            let mut measurement_result= None;
+            match measurement_handle.await.unwrap() {
+                Err(e) =>{
+                    error = Some( format!("Error occurred during network measurement | {:?}",e));
+                    measurement_failed = true;
+                },
+                Ok(v) => measurement_result = Some(v)
             }
             
-        }else{
-            return Err(anyhow::Error::msg("Error occurred during get profile config(IProfile)"))
-        }
-    };
-    Ok(current_profile_name)
-}
-pub fn get_current_profile_proxies() -> Result<Vec<Proxy>>{
-    let mut current_profile_name = get_current_profile_uid()?;
-    current_profile_name.push_str(".yaml");
-    let current_profile_file_path = dirs::app_profiles_dir()?.join(current_profile_name);
+            // final result for this proxy
+            let mut proxy_speed_measure_result = SpeedTestResult{proxy:proxy,measure_info:None,error:None};
+            
+            // Handle error if occurred
+            if measurement_failed{
+                proxy_speed_measure_result.error = error;
+                // Add this measurement to whole measurements
+                proxy_measurement_results.push(proxy_speed_measure_result);
+                continue;
+            }
+            
+            // Fill result with test values
+            let mut measure_info = MeasureInfo{speed:None,latency:None};
+            if let MeasurementMode::Download = measure_mode {
+                let speed_value = format!("{}MB/s",measurement_result.as_ref().unwrap().download_measurement.as_ref().unwrap().megabyte_s().to_string());
+                measure_info.speed = Some(speed_value);
+            }else if let MeasurementMode::Upload = measure_mode{
+                let speed_value = format!("{}MB/s",measurement_result.as_ref().unwrap().upload_measurement.as_ref().unwrap().megabyte_s().to_string());
+                measure_info.speed = Some(speed_value);
+            }
+            let latency_value = format!("{}/ms",measurement_result.as_ref().unwrap().latency_measurement.latency.as_millis());
+            measure_info.latency = Some(latency_value);
 
-    let current_profile_yaml = read_yaml::<Value>(&current_profile_file_path).unwrap();
-    let proxies = {
-        if let   Some(value) = current_profile_yaml.get("proxies"){
-            value
+            // Add this measurement to whole measurements
+            proxy_measurement_results.push(proxy_speed_measure_result);
         }else{
-            return Err(anyhow::Error::msg("Error occurred during get proxies field from profile file)"))
+            continue;
         }
-    };
-    if let Ok(proxies) = serde_yaml::from_value::<Vec<Proxy>>(proxies.to_owned()){
-        Ok(proxies)
-    }else{
-        Err(anyhow::Error::msg("Error occurred during deserialize yaml to Proxy struct"))
     }
+
+    // Return all measurement result
+    Ok(proxy_measurement_results)
 }
 
-// pub fn measure_current_profile_proxies(measure_mode: MeasurementMode,profile_proxies: Vec<Proxy>){
-//     // profile_proxies is the clash proxy information
-//     for p_proxy in profile_proxies{
-
-//     }
-//     //network_measurement::measure(measure_mode, proxies)
-// }
-
-// Doesn't work, finally i just can get profile proxy-groups not the current one
-// pub async fn get_current_selector_and_proxy() -> Result<(String,String)>{
-//     // Get profiles
-//     let config= cmds::get_profiles();
-//     if config.is_err(){
-//         return Err(anyhow::Error::msg("Error occurred during get profiles"))
-//     }
-//     let config = config.unwrap();
-//     let profiles = config.get_items();
-//     if profiles.is_none() || profiles.unwrap().len() < 1{
-//         return Err(anyhow::Error::msg("There is no profile"))
-//     }
-    
-//     let current_profile_uid = get_current_profile_uid()?;
-//     let mut current_profile:&PrfItem = &PrfItem::default();
-//     for prof in profiles.unwrap(){
-//         if prof.uid.clone().unwrap() == current_profile_uid{
-//             current_profile = prof;
-//             break;
-//         }
-//     }
-//     if current_profile == &PrfItem::default(){
-//         return Err(anyhow::Error::msg("There is no profile"))
-//     }
-//     let (selector,proxy) = {
-//         let selected = current_profile.selected.as_ref().unwrap();
-//         ("ssf".to_string(),"sdf".to_string())
-//     };
-
-//     Ok((selector,proxy))
-// }
-
-// pub async fn get_selector_proxies(selector:&String){
-
-// }
-
+pub fn check_internet_connection() -> bool{
+    online::check(Some(4)).is_ok()
+}
 #[macro_export]
 macro_rules! error {
     ($result: expr) => {

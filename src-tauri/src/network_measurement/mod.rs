@@ -8,9 +8,20 @@ mod speedtest_servers_config;
 
 pub use speedtest_config::Proxy;
 pub use speedtest_config::MeasurementMode;
+pub use speedtest::SpeedTestResultOwned;
+
+pub struct SpeedTestResult{
+    pub proxy:String,
+    pub measure_info:Option<MeasureInfo>,
+    pub error:Option<String>,
+}
+pub struct MeasureInfo{
+    pub speed:Option<String>,
+    pub latency:Option<String>,
+}
 
 // Measures download and upload speed
-pub fn measure(measurement_mode: MeasurementMode,proxy: Option<&reqwest::Proxy>) -> Result<speedtest::SpeedTestResultOwned,error::SpeedTestError>{
+pub fn measure(measurement_mode: &MeasurementMode,proxy: Option<&reqwest::Proxy>) -> Result<speedtest::SpeedTestResultOwned,error::SpeedTestError>{
     // Build proxy if exist
     let proxy= {
         match proxy{

@@ -101,6 +101,7 @@ pub enum ConfigType {
     Run,
     Check,
 }
+#[derive(PartialEq)]
 pub enum Mode{
     Global,
     Rule,

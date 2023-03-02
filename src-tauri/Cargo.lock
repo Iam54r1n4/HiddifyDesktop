@@ -24,6 +24,7 @@ dependencies = [
  "md5",
  "nanoid",
  "once_cell",
+ "online",
  "open",
  "parking_lot",
  "patch",
@@ -2693,6 +2694,12 @@ name = "once_cell"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86f0b0d4bf799edbc74508c1e8bf170ff5f41238e5f8225603ca7caaae2b7860"
+
+[[package]]
+name = "online"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92f3da77f57f551a8f50567bf3c2b2883716d7b1ded55ee3f5e0d1ad549df56b"
 
 [[package]]
 name = "opaque-debug"

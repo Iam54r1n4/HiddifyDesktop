@@ -28,7 +28,7 @@ static mut NEED_WINDOW_BE_FOCUS:Lazy<Arc<Mutex<bool>>> = Lazy::new(|| Arc::new(M
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-
+    
     #[cfg(not(target_os = "macos"))]
     {
         // Deep linking

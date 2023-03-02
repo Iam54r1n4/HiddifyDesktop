@@ -52,6 +52,7 @@ roxmltree = "0.18.0"
 url = "2.3.1"
 md5 = "0.7.0"
 iter-read = "0.3.1"
+online = "4.0.0"
 
 [target.'cfg(windows)'.dependencies]
 runas = "0.2.1"

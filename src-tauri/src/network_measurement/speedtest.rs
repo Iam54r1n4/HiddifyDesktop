@@ -131,7 +131,8 @@ pub fn get_best_server_based_on_latency<'a>(
             if res.is_err() {
                 continue 'server_loop;
             }
-            res?.bytes()?.last();
+            #[allow(unused)]
+            res?.bytes()?.last().unwrap();
             let latency_measurement = SystemTime::now().duration_since(start_time)?;
             info!("Sampled {} ms", latency_measurement.as_millis());
             latency_measurements.push(latency_measurement);
@@ -171,11 +172,14 @@ impl SpeedMeasurement {
     pub fn kbps(&self) -> u32 {
         (self.size as u32 * 8) / self.duration.as_millis() as u32
     }
-    pub fn Mbps(&self) -> u32{
-        ((self.kbps()) as f32 / 1000.00) as u32
+    // megabit per second
+    #[allow(unused)]
+    pub fn megabit_s(&self) -> u32{
+        ((self.kbps()) as f32 / 1000.0) as u32
     }
-    pub fn MBps(&self) -> u32{
-        (((self.kbps() / 8) as f32 ) / 1000.00) as u32
+    // megabyte per second
+    pub fn megabyte_s(&self) -> u32{
+        (((self.kbps() / 8) as f32 ) / 1000.0) as u32
     }
     pub fn bps_f64(&self) -> f64 {
         (self.size as f64 * 8.0) / (self.duration.as_millis() as f64 / (1000.0))
@@ -421,6 +425,7 @@ pub struct SpeedTestResult<'a, 'b, 'c> {
 }
 
 impl<'a, 'b, 'c> SpeedTestResult<'a, 'b, 'c> {
+    #[allow(unused)]
     pub fn hash(&self) -> String {
         let hashed_str = format!(
             "{}-{}-{}-{}",
@@ -450,6 +455,7 @@ pub struct SpeedTestResultOwned{
     pub server: SpeedTestServer,
     pub latency_measurement: SpeedTestLatencyTestResultOwned,
 }
+#[allow(unused)]
 pub fn get_share_url(speedtest_result: &SpeedTestResult) -> Result<String, SpeedTestError> {
     info!("Generating share URL");
     let download = if let Some(download_measurement) = speedtest_result.download_measurement {

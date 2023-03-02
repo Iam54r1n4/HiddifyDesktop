@@ -2,6 +2,7 @@ use super::{distance::EarthLocation, error::SpeedTestError};
 use std::{net::Ipv4Addr, time::Duration};
 use reqwest::Proxy as ReqwestProxy;
 
+#[derive(Clone)]
 pub enum MeasurementMode{
     Full,
     Download,

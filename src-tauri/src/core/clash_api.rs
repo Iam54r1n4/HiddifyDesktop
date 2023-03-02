@@ -2,7 +2,7 @@ use crate::config::{Config, self};
 use anyhow::{bail, Result,Error};
 use reqwest::header::HeaderMap;
 use serde_yaml::Mapping;
-use std::collections::HashMap;
+use std::{collections::HashMap};
 
 /// PUT /configs
 /// path 是绝对路径
@@ -93,7 +93,8 @@ pub fn parse_check_output(log: String) -> String {
 }
 
 /// PUT /proxies/:name
-pub async fn select_proxy(selector:&String,proxy_name:&String) -> Result<()>{
+pub async fn select_proxy(selector:impl AsRef<str>,proxy_name:&String) -> Result<()>{
+    let selector = selector.as_ref().to_string();
     let (url, headers) = clash_client_info()?;
     let url = format!("{url}/proxies/{selector}");
 
@@ -101,36 +102,40 @@ pub async fn select_proxy(selector:&String,proxy_name:&String) -> Result<()>{
     json.insert("name", proxy_name);
 
     let client = reqwest::ClientBuilder::new().no_proxy().build()?;
-    let builder = client.put(url).headers(headers.clone()).json(&json);
+    let builder = client.put(url).headers(headers).json(&json);
     builder.send().await?;
     Ok(())
 }
 
-pub async fn get_mode() -> Result<config::Mode>{
-    let (url,headers) = clash_client_info()?;
-    let url = format!("{url}/configs");
-
+pub async fn get_selector_proxies(selector:impl AsRef<str>) -> Result<Vec<String>>{
+    let selector = selector.as_ref().to_string();
+    let (url, headers) = clash_client_info()?;
+    let url = format!("{url}/proxies/{selector}");
+    
     let client = reqwest::ClientBuilder::new().no_proxy().build()?;
     let res = client.get(url).headers(headers).send().await?;
     let body = res.bytes().await?;
-
+    
     let json = serde_json::from_slice::<serde_json::Value>(&body)?;
-    if let Some(mode) = json.get("mode"){
-        if let Some(mode) = mode.as_str(){
-            match mode{
-                "global" => Ok(config::Mode::Global),
-                "rule" => Ok(config::Mode::Rule),
-                "direct" => Ok(config::Mode::Direct),
-                _ => Err(Error::msg("Unknown clash mode"))
+    
+    if let Some(all_field) = json.get("all"){
+        if let Some(all_value) = all_field.as_array(){
+            if all_value.len() < 1{
+                return Err(anyhow::Error::msg(format!("There is no proxy in {selector} selector(proxy-group)")))
             }
-        }else{
-            Err(Error::msg("Error occurred during get mode of clash"))
+            let mut proxies: Vec<String> = vec![];
+            for proxy in all_value{
+                if let Some(proxy_value) = proxy.as_str() {
+                    proxies.push(proxy_value.to_string())
+                }
+            }
+            return Ok(proxies)
         }
-    }else{
-        Err(Error::msg("Error occurred during get mode of clash"))
     }
+    Err(anyhow::Error::msg("The response is invalid"))
 }
 
+#[allow(unused)]
 pub async fn get_selectors() -> Result<Vec<String>>{
     let (url, headers) = clash_client_info()?;
     let url = format!("{url}/proxies");
@@ -164,6 +169,44 @@ pub async fn get_selectors() -> Result<Vec<String>>{
     }
 
 }
+
+pub async fn set_mode(mode: &String) -> Result<()>{
+    let (url,headers) = clash_client_info()?;
+    let url = format!("{url}/configs");
+    let client = reqwest::ClientBuilder::new().no_proxy().build()?;
+
+    let mut json = HashMap::new();
+    json.insert("mode",mode);
+
+    client.patch(url).headers(headers).json(&json).send().await?;
+    Ok(())
+}
+
+pub async fn get_mode() -> Result<config::Mode>{
+    let (url,headers) = clash_client_info()?;
+    let url = format!("{url}/configs");
+
+    let client = reqwest::ClientBuilder::new().no_proxy().build()?;
+    let res = client.get(url).headers(headers).send().await?;
+    let body = res.bytes().await?;
+
+    let json = serde_json::from_slice::<serde_json::Value>(&body)?;
+    if let Some(mode) = json.get("mode"){
+        if let Some(mode) = mode.as_str(){
+            match mode{
+                "global" => Ok(config::Mode::Global),
+                "rule" => Ok(config::Mode::Rule),
+                "direct" => Ok(config::Mode::Direct),
+                _ => Err(Error::msg("Unknown clash mode"))
+            }
+        }else{
+            Err(Error::msg("Error occurred during get mode of clash"))
+        }
+    }else{
+        Err(Error::msg("Error occurred during get mode of clash"))
+    }
+}
+
 #[test]
 fn test_parse_check_output() {
     let str1 = r#"xxxx\n time="2022-11-18T20:42:58+08:00" level=error msg="proxy 0: 'alpn' expected type 'string', got unconvertible type '[]interface {}'""#;

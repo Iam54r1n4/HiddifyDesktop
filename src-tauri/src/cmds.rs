@@ -9,12 +9,29 @@ use anyhow::{Context, Result};
 use serde_yaml::Mapping;
 use std::collections::{HashMap, VecDeque};
 use sysproxy::Sysproxy;
+use crate::network_measurement::SpeedTestResult;
 
 type CmdResult<T = ()> = Result<T, String>;
 
 #[tauri::command]
 pub fn get_profiles() -> CmdResult<IProfiles> {
     Ok(Config::profiles().data().clone())
+}
+#[tauri::command]
+pub async fn measure_global_proxies_download() -> CmdResult<Vec<SpeedTestResult>>{
+    let res = help::measure_global_proxies(crate::network_measurement::MeasurementMode::Download).await;
+    if res.is_err(){
+        return Err("Error occurred during global proxy measurement".to_string())
+    }
+    Ok(res.unwrap())
+}
+#[tauri::command]
+pub async fn measure_global_proxies_upload() -> CmdResult<Vec<SpeedTestResult>>{
+    let res = help::measure_global_proxies(crate::network_measurement::MeasurementMode::Upload).await;
+    if res.is_err(){
+        return Err("Error occurred during global proxy measurement".to_string())
+    }
+    Ok(res.unwrap())
 }
 
 #[tauri::command]
